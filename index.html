@@ -4506,15 +4506,19 @@ function renderScreenResult(r) {
 
   // ── Action required ────────────────────────────────────────────────────────
   if (r.action_required) {
-    html += '<div style="margin-top:14px;padding:14px;background:var(--lred);border-radius:6px;border-left:4px solid var(--red)">'
-          + '<div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">⚠ Immediate Action Required</div>'
-          + '<div style="font-size:12px;color:var(--tx1);line-height:1.8">'
-          + '1. <strong>Freeze the account</strong> and block all pending transactions immediately.<br>'
-          + '2. <strong>Do not tip off</strong> the customer — tipping-off is a criminal offence under BSA/AML law.<br>'
-          + '3. <strong>Escalate to Compliance Officer</strong> and Supervisor for SAR filing.<br>'
-          + '4. <strong>Document all actions</strong> in the case management system with timestamps.<br>'
-          + '5. <strong>OFAC reporting:</strong> Report to OFAC within 10 business days of blocking.'
-          + '</div></div>';
+    var isConfirmed = r.confirmed_hits > 0 || r.status === 'HIT' || r.status === 'BENEFICIAL_OWNER_HIT';
+    html += '<div style="margin-top:14px;padding:16px 18px;background:' + (isConfirmed ? '#2D0A0A' : '#1E100A') + ';border-radius:8px;border:1px solid ' + (isConfirmed ? '#C0392B' : '#D05538') + '">'
+          + '<div style="font-size:13px;font-weight:700;color:' + (isConfirmed ? '#FF6B6B' : '#E67E22') + ';margin-bottom:10px">' + (isConfirmed ? '&#128680; Immediate Action Required &mdash; Confirmed SDN Hit' : '&#9888;&#65039; Action Required &mdash; Potential Match') + '</div>'
+          + '<div style="font-size:12px;color:#F0F0EE;line-height:2.0">'
+          + '1. <strong style="color:#fff">Freeze the account</strong> and block all pending transactions immediately. Do not process any further debits or credits.<br>'
+          + '2. <strong style="color:#fff">Do not tip off</strong> the customer &mdash; tipping-off is a criminal offence under 31 U.S.C. section 5318(g)(2).<br>'
+          + '3. <strong style="color:#fff">Escalate to Compliance Officer</strong> and Supervisor for SAR filing review within 30 days of detection.<br>'
+          + '4. <strong style="color:#fff">Document all actions</strong> in the case management system with timestamps and officer sign-off.<br>'
+          + '5. <strong style="color:#fff">Report to OFAC</strong> within 10 business days of blocking via the OFAC sanctions reporting portal.<br>'
+          + '6. <strong style="color:#fff">Retain all records</strong> for a minimum of 5 years per 31 C.F.R. section 1010.430.'
+          + '</div>'
+          + (isConfirmed ? '<div style="margin-top:10px;padding:8px 10px;background:rgba(192,57,43,0.30);border-radius:5px;font-size:11px;color:#FFB3B3">&#9888; This entity appears on the OFAC Specially Designated Nationals list. U.S. persons are prohibited from engaging in any transaction with this party. Civil penalties up to $1,000,000 per transaction may apply.</div>' : '')
+          + '</div>';
   }
 
   // ── Footer ─────────────────────────────────────────────────────────────────
