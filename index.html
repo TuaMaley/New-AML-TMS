@@ -626,7 +626,7 @@ async function dashboard() {
   const stats = await api('/api/stats') || {};
   $('content').innerHTML = `
 <div class="mrow" style="grid-template-columns:repeat(5,1fr)">
-  <div class="mc"><div class="ml">Total Alerts</div><div class="mv">${stats.alerts_today||'—'}</div><div class="md r">${stats.critical_alerts||0} critical · ${stats.high_alerts||0} high</div></div>
+  <div class="mc"><div class="ml">Total Alerts</div><div class="mv" id="dash-total-alerts">${stats.total_alerts_in_store||stats.alerts_today||'—'}</div><div class="md r" id="dash-total-sub">${stats.critical_alerts||0} critical · ${stats.high_alerts||0} high</div></div>
   <div class="mc"><div class="ml">Today&#39;s Alerts</div><div class="mv" id="dash-today-alerts">—</div><div class="md">Live feed · current session</div></div>
   <div class="mc"><div class="ml">False-positive rate (ML)</div><div class="mv" style="color:var(--green)">${stats.fp_rate_pct !== undefined ? stats.fp_rate_pct+'%' : '—'}</div><div class="md" style="color:var(--green)">↓ ${stats.fp_reduction_pct||80}% vs ${stats.rule_based_baseline_pct||89}% rule-based</div></div>
   <div class="mc"><div class="ml">SARs filed (30d)</div><div class="mv">${stats.sar_filed_30d||'—'}</div><div class="md">↑ 2 from prior period</div></div>
@@ -696,14 +696,21 @@ async function dashboard() {
     </tbody></table>`;
   $('alert-count').textContent = (adata.alerts||[]).filter(a=>a.status==='open').length;
 
-  // Refresh stats now that ingestion is complete — updates Total Alerts with real count
+  // Refresh stats — update both Total Alerts and Today's Alerts with real backend counts
   var freshStats = await api('/api/stats') || {};
-  if (freshStats.alerts_today) {
-    // Update the Total Alerts metric card
-    var mvEls = document.querySelectorAll('.mc .mv');
-    if (mvEls.length > 0) mvEls[0].textContent = freshStats.alerts_today;
-    var mdEls = document.querySelectorAll('.mc .md');
-    if (mdEls.length > 0) mdEls[0].textContent = (freshStats.critical_alerts||0) + ' critical · ' + (freshStats.high_alerts||0) + ' high';
+  // Total Alerts — use total_alerts_in_store (full ingested dataset)
+  var totalEl = document.getElementById('dash-total-alerts');
+  if (totalEl) totalEl.textContent = freshStats.total_alerts_in_store || freshStats.alerts_today || totalEl.textContent;
+  var totalSub = document.getElementById('dash-total-sub');
+  if (totalSub) totalSub.textContent = (freshStats.critical_alerts||0) + ' critical · ' + (freshStats.high_alerts||0) + ' high';
+  // Today's Alerts — use backend date-filtered count (stable, not live-feed count)
+  var todayEl = document.getElementById('dash-today-alerts');
+  if (todayEl) {
+    var todayCount = freshStats.today_alerts !== undefined ? freshStats.today_alerts : 0;
+    todayEl.textContent = todayCount;
+    todayEl.style.color = todayCount > 0 ? 'var(--red)' : 'var(--tx1)';
+    var todayMd = todayEl.closest && todayEl.closest('.mc') ? todayEl.closest('.mc').querySelector('.md') : null;
+    if (todayMd) todayMd.textContent = todayCount > 0 ? todayCount + ' alert(s) today' : 'No new alerts today';
   }
 
   // Inject model performance card container
@@ -2736,16 +2743,10 @@ function startLiveFeed() {
     feed.prepend(row);
     while(feed.children.length>8)feed.removeChild(feed.lastChild);
     $('txn-rate').innerHTML=`<span class="dot"></span>${((txn.score||0),(12800+Math.round(Math.random()*400))).toLocaleString()} txns/min`;
-    // Increment today's alerts counter when a live alert fires
+    // Track live alerts in session variable (used by Alert Queue Today tab)
+    // but DO NOT update Today's Alerts dashboard card — that uses backend date-filter
     if (txn.alert_id) {
       window._todayAlertCount = (window._todayAlertCount || 0) + 1;
-      var todayEl = document.getElementById('dash-today-alerts');
-      if (todayEl) {
-        todayEl.textContent = window._todayAlertCount;
-        todayEl.style.color = 'var(--red)';
-        var todayMd = todayEl.closest && todayEl.closest('.mc') ? todayEl.closest('.mc').querySelector('.md') : null;
-        if (todayMd) todayMd.textContent = window._todayAlertCount + ' alert' + (window._todayAlertCount !== 1 ? 's' : '') + ' this session';
-      }
     }
   }
   tick();
@@ -5059,13 +5060,17 @@ async function analytics() {
         };
         var typoFilter = _TYPO_MAP[label] || label;
         // Navigate to Alert Queue with typology pre-filtered
+        // Use setTimeout to ensure window.go is defined (it's set up after page load)
         window._alertAdvanced = window._alertAdvanced || {};
         window._alertAdvanced.typology = typoFilter;
         window._alertAdvanced.channel  = '';
         window._alertAdvanced.priority = '';
         window._alertAdvanced.country  = '';
         window._alertFilter = 'all';
-        window.go('alerts');
+        setTimeout(function(){
+          if (typeof window.go === 'function') window.go('alerts');
+          else if (typeof window._goFinal === 'function') window._goFinal('alerts');
+        }, 0);
       },
       onHover:function(evt,elements){
         evt.native.target.style.cursor = elements&&elements.length ? 'pointer' : 'default';
