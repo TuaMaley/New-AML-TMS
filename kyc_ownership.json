@@ -1,0 +1,1107 @@
+{
+  "Apex Global Trade": {
+    "entity_name": "Apex Global Trade",
+    "entity_country": "UAE",
+    "kyc_level": "Premium",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Apex Global Trade",
+        "owner_type": "Individual",
+        "owner_country": "UAE",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Apex Global Trade",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Apex Global Trade",
+    "ubo_country": "UAE",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Liberty Transfers": {
+    "entity_name": "Liberty Transfers",
+    "entity_country": "UK",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Liberty Transfers",
+        "owner_type": "Individual",
+        "owner_country": "UK",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Liberty Transfers",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Liberty Transfers",
+    "ubo_country": "UK",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Cobalt Financial": {
+    "entity_name": "Cobalt Financial",
+    "entity_country": "UAE",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Apex Finance LLC",
+        "owner_type": "Corporate",
+        "owner_country": "UAE",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Natalia Kim",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in UAE. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Natalia Kim",
+        "owner_type": "Individual",
+        "owner_country": "BVI",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Natalia Kim",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: BVI."
+      }
+    ],
+    "ubo_name": "Natalia Kim",
+    "ubo_country": "BVI",
+    "chain_depth": 2,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Kwame B. (Personal)": {
+    "entity_name": "Kwame B. (Personal)",
+    "entity_country": "Panama",
+    "kyc_level": "Basic",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Kwame B.",
+        "owner_type": "Individual",
+        "owner_country": "Panama",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Kwame B.",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Kwame B.",
+    "ubo_country": "Panama",
+    "chain_depth": 1,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "GoldPath Remittance": {
+    "entity_name": "GoldPath Remittance",
+    "entity_country": "USA",
+    "kyc_level": "Enhanced",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "South Ventures Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Australia",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Maria Anderson",
+        "shell_flag": false,
+        "notes": "Parent company registered in Australia."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Maria Anderson",
+        "owner_type": "Individual",
+        "owner_country": "UK",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Maria Anderson",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: UK."
+      }
+    ],
+    "ubo_name": "Maria Anderson",
+    "ubo_country": "UK",
+    "chain_depth": 2,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Vega Consulting": {
+    "entity_name": "Vega Consulting",
+    "entity_country": "Singapore",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Vega Consulting",
+        "owner_type": "Individual",
+        "owner_country": "Singapore",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Vega Consulting",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Vega Consulting",
+    "ubo_country": "Singapore",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Harbor Digital Inc.": {
+    "entity_name": "Harbor Digital Inc.",
+    "entity_country": "Singapore",
+    "kyc_level": "Premium",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Trans International LLC",
+        "owner_type": "Corporate",
+        "owner_country": "Singapore",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Ivan Kowalski",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Singapore. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Global Capital Corp",
+        "owner_type": "Corporate",
+        "owner_country": "Singapore",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Ivan Kowalski",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Singapore. Standard corporate structure."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Atlantic International Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Luxembourg",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Ivan Kowalski",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Luxembourg. Standard corporate structure."
+      },
+      {
+        "layer": 4,
+        "owner_name": "Ivan Kowalski",
+        "owner_type": "Individual",
+        "owner_country": "Seychelles",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Ivan Kowalski",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Seychelles."
+      }
+    ],
+    "ubo_name": "Ivan Kowalski",
+    "ubo_country": "Seychelles",
+    "chain_depth": 4,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Orion Securities": {
+    "entity_name": "Orion Securities",
+    "entity_country": "UAE",
+    "kyc_level": "Standard",
+    "tier": "PEP",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "South Capital LLC",
+        "owner_type": "Corporate",
+        "owner_country": "UAE",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Yuki Zhang",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in UAE. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Yuki Zhang",
+        "owner_type": "Individual",
+        "owner_country": "Marshall Islands",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Yuki Zhang",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Marshall Islands."
+      }
+    ],
+    "ubo_name": "Yuki Zhang",
+    "ubo_country": "Marshall Islands",
+    "chain_depth": 2,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "BlueStar Payments": {
+    "entity_name": "BlueStar Payments",
+    "entity_country": "USA",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Inter Investments S.A.",
+        "owner_type": "Corporate",
+        "owner_country": "USA",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Viktor Kim",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in USA. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "South International LLC",
+        "owner_type": "Corporate",
+        "owner_country": "Malta",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Viktor Kim",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Malta. Standard corporate structure."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Viktor Kim",
+        "owner_type": "Individual",
+        "owner_country": "Luxembourg",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Viktor Kim",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Luxembourg."
+      }
+    ],
+    "ubo_name": "Viktor Kim",
+    "ubo_country": "Luxembourg",
+    "chain_depth": 3,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Vertex Trading": {
+    "entity_name": "Vertex Trading",
+    "entity_country": "Nigeria",
+    "kyc_level": "Enhanced",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Global International LLC",
+        "owner_type": "Corporate",
+        "owner_country": "Nigeria",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Yuki Okonkwo",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Nigeria. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "North Ventures LLC",
+        "owner_type": "Corporate",
+        "owner_country": "France",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Yuki Okonkwo",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in France. Standard corporate structure."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Yuki Okonkwo",
+        "owner_type": "Individual",
+        "owner_country": "Australia",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Yuki Okonkwo",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Australia."
+      }
+    ],
+    "ubo_name": "Yuki Okonkwo",
+    "ubo_country": "Australia",
+    "chain_depth": 3,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Sunrise Fintech": {
+    "entity_name": "Sunrise Fintech",
+    "entity_country": "Panama",
+    "kyc_level": "Enhanced",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Inter Associates LLC",
+        "owner_type": "Corporate",
+        "owner_country": "Germany",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Fatima Ferreira",
+        "shell_flag": false,
+        "notes": "Parent company registered in Germany."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Fatima Ferreira",
+        "owner_type": "Individual",
+        "owner_country": "France",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Fatima Ferreira",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: France."
+      }
+    ],
+    "ubo_name": "Fatima Ferreira",
+    "ubo_country": "France",
+    "chain_depth": 2,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Clearwater Exports": {
+    "entity_name": "Clearwater Exports",
+    "entity_country": "USA",
+    "kyc_level": "Standard",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Ivan Hassan",
+        "owner_type": "Individual",
+        "owner_country": "Australia",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Ivan Hassan",
+        "shell_flag": false,
+        "notes": "Direct majority shareholder. Resident: Australia."
+      }
+    ],
+    "ubo_name": "Ivan Hassan",
+    "ubo_country": "Australia",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Titan Transfers": {
+    "entity_name": "Titan Transfers",
+    "entity_country": "Nigeria",
+    "kyc_level": "Enhanced",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Titan Transfers",
+        "owner_type": "Individual",
+        "owner_country": "Nigeria",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Titan Transfers",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Titan Transfers",
+    "ubo_country": "Nigeria",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Horizon Capital": {
+    "entity_name": "Horizon Capital",
+    "entity_country": "Ghana",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Trans Associates S.A.",
+        "owner_type": "Corporate",
+        "owner_country": "Ghana",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Yuki Nakamura",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Ghana. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Trans Capital Holdings",
+        "owner_type": "Corporate",
+        "owner_country": "Vanuatu",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Yuki Nakamura",
+        "shell_flag": true,
+        "notes": "Intermediate holding company registered in Vanuatu. Nominee directors. No identifiable operational activity."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Crest Capital Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Cayman Islands",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Yuki Nakamura",
+        "shell_flag": true,
+        "notes": "Intermediate holding company registered in Cayman Islands. Nominee directors. No identifiable operational activity."
+      },
+      {
+        "layer": 4,
+        "owner_name": "Yuki Nakamura",
+        "owner_type": "Individual",
+        "owner_country": "Panama",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Yuki Nakamura",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Panama."
+      }
+    ],
+    "ubo_name": "Yuki Nakamura",
+    "ubo_country": "Panama",
+    "chain_depth": 4,
+    "has_offshore": true,
+    "shell_flag": true,
+    "generated": true
+  },
+  "Delta FX Services": {
+    "entity_name": "Delta FX Services",
+    "entity_country": "Nigeria",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Elena Hassan",
+        "owner_type": "Individual",
+        "owner_country": "Australia",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Elena Hassan",
+        "shell_flag": false,
+        "notes": "Direct majority shareholder. Resident: Australia."
+      }
+    ],
+    "ubo_name": "Elena Hassan",
+    "ubo_country": "Australia",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Sterling Commerce": {
+    "entity_name": "Sterling Commerce",
+    "entity_country": "UAE",
+    "kyc_level": "Standard",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Sterling Commerce",
+        "owner_type": "Individual",
+        "owner_country": "UAE",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Sterling Commerce",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Sterling Commerce",
+    "ubo_country": "UAE",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Meridian Capital": {
+    "entity_name": "Meridian Capital",
+    "entity_country": "Germany",
+    "kyc_level": "Standard",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "South Investments Corp",
+        "owner_type": "Corporate",
+        "owner_country": "Germany",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Carlos Santos",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Germany. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Crest International S.A.",
+        "owner_type": "Corporate",
+        "owner_country": "USA",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Carlos Santos",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in USA. Standard corporate structure."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Carlos Santos",
+        "owner_type": "Individual",
+        "owner_country": "Seychelles",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Carlos Santos",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Seychelles."
+      }
+    ],
+    "ubo_name": "Carlos Santos",
+    "ubo_country": "Seychelles",
+    "chain_depth": 3,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Prism Digital": {
+    "entity_name": "Prism Digital",
+    "entity_country": "Ghana",
+    "kyc_level": "Standard",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Prism Digital",
+        "owner_type": "Individual",
+        "owner_country": "Ghana",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Prism Digital",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Prism Digital",
+    "ubo_country": "Ghana",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Eagle Finance": {
+    "entity_name": "Eagle Finance",
+    "entity_country": "Singapore",
+    "kyc_level": "Standard",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "West Associates S.A.",
+        "owner_type": "Corporate",
+        "owner_country": "Singapore",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "James Russo",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Singapore. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Crest Capital S.A.",
+        "owner_type": "Corporate",
+        "owner_country": "Luxembourg",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "James Russo",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Luxembourg. Standard corporate structure."
+      },
+      {
+        "layer": 3,
+        "owner_name": "South Holdings Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Germany",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "James Russo",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Germany. Standard corporate structure."
+      },
+      {
+        "layer": 4,
+        "owner_name": "James Russo",
+        "owner_type": "Individual",
+        "owner_country": "BVI",
+        "ownership_pct": 75,
+        "is_ubo": true,
+        "ubo_name": "James Russo",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: BVI."
+      }
+    ],
+    "ubo_name": "James Russo",
+    "ubo_country": "BVI",
+    "chain_depth": 4,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Atlantic Shell Co.": {
+    "entity_name": "Atlantic Shell Co.",
+    "entity_country": "Ghana",
+    "kyc_level": "Standard",
+    "tier": "PEP",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "South Global Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Ghana",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Carlos Ivanova",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Ghana. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Atlantic Holdings S.A.",
+        "owner_type": "Corporate",
+        "owner_country": "BVI",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Carlos Ivanova",
+        "shell_flag": true,
+        "notes": "Intermediate holding company registered in BVI. Nominee directors. No identifiable operational activity."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Prime Finance Holdings",
+        "owner_type": "Corporate",
+        "owner_country": "Malta",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Carlos Ivanova",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Malta. Standard corporate structure."
+      },
+      {
+        "layer": 4,
+        "owner_name": "Carlos Ivanova",
+        "owner_type": "Individual",
+        "owner_country": "Netherlands",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Carlos Ivanova",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Netherlands."
+      }
+    ],
+    "ubo_name": "Carlos Ivanova",
+    "ubo_country": "Netherlands",
+    "chain_depth": 4,
+    "has_offshore": true,
+    "shell_flag": true,
+    "generated": true
+  },
+  "Cascade Payments": {
+    "entity_name": "Cascade Payments",
+    "entity_country": "Ghana",
+    "kyc_level": "Standard",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "East Capital Holdings",
+        "owner_type": "Corporate",
+        "owner_country": "Ghana",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Maria Kim",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Ghana. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "South Associates Holdings",
+        "owner_type": "Corporate",
+        "owner_country": "Belize",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Maria Kim",
+        "shell_flag": true,
+        "notes": "Intermediate holding company registered in Belize. Nominee directors. No identifiable operational activity."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Pacific Associates Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Cyprus",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Maria Kim",
+        "shell_flag": true,
+        "notes": "Intermediate holding company registered in Cyprus. Nominee directors. No identifiable operational activity."
+      },
+      {
+        "layer": 4,
+        "owner_name": "Maria Kim",
+        "owner_type": "Individual",
+        "owner_country": "Cayman Islands",
+        "ownership_pct": 75,
+        "is_ubo": true,
+        "ubo_name": "Maria Kim",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Cayman Islands."
+      }
+    ],
+    "ubo_name": "Maria Kim",
+    "ubo_country": "Cayman Islands",
+    "chain_depth": 4,
+    "has_offshore": true,
+    "shell_flag": true,
+    "generated": true
+  },
+  "Pacific Bridge LLC": {
+    "entity_name": "Pacific Bridge LLC",
+    "entity_country": "UK",
+    "kyc_level": "Standard",
+    "tier": "PEP",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "West International Holdings",
+        "owner_type": "Corporate",
+        "owner_country": "UK",
+        "ownership_pct": 51,
+        "is_ubo": false,
+        "ubo_name": "Maria Al-Rashid",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in UK. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Euro Associates Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Cyprus",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Maria Al-Rashid",
+        "shell_flag": true,
+        "notes": "Intermediate holding company registered in Cyprus. Nominee directors. No identifiable operational activity."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Maria Al-Rashid",
+        "owner_type": "Individual",
+        "owner_country": "Marshall Islands",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Maria Al-Rashid",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Marshall Islands."
+      }
+    ],
+    "ubo_name": "Maria Al-Rashid",
+    "ubo_country": "Marshall Islands",
+    "chain_depth": 3,
+    "has_offshore": true,
+    "shell_flag": true,
+    "generated": true
+  },
+  "Stellar Payments": {
+    "entity_name": "Stellar Payments",
+    "entity_country": "Nigeria",
+    "kyc_level": "Premium",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Stellar Payments",
+        "owner_type": "Individual",
+        "owner_country": "Nigeria",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Stellar Payments",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Stellar Payments",
+    "ubo_country": "Nigeria",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Nova Securities": {
+    "entity_name": "Nova Securities",
+    "entity_country": "Nigeria",
+    "kyc_level": "Enhanced",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Nova Securities",
+        "owner_type": "Individual",
+        "owner_country": "Nigeria",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Nova Securities",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Nova Securities",
+    "ubo_country": "Nigeria",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Summit Holdings": {
+    "entity_name": "Summit Holdings",
+    "entity_country": "UK",
+    "kyc_level": "Standard",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Summit Holdings",
+        "owner_type": "Individual",
+        "owner_country": "UK",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Summit Holdings",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Summit Holdings",
+    "ubo_country": "UK",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Nexus Trading LLC": {
+    "entity_name": "Nexus Trading LLC",
+    "entity_country": "Panama",
+    "kyc_level": "Enhanced",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Nexus Trading LLC",
+        "owner_type": "Individual",
+        "owner_country": "Panama",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Nexus Trading LLC",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Nexus Trading LLC",
+    "ubo_country": "Panama",
+    "chain_depth": 1,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Nordic Wire Services": {
+    "entity_name": "Nordic Wire Services",
+    "entity_country": "Panama",
+    "kyc_level": "Standard",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Amira Hassan",
+        "owner_type": "Individual",
+        "owner_country": "UK",
+        "ownership_pct": 51,
+        "is_ubo": true,
+        "ubo_name": "Amira Hassan",
+        "shell_flag": false,
+        "notes": "Direct majority shareholder. Resident: UK."
+      }
+    ],
+    "ubo_name": "Amira Hassan",
+    "ubo_country": "UK",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Quantum Exchange": {
+    "entity_name": "Quantum Exchange",
+    "entity_country": "Germany",
+    "kyc_level": "Basic",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Viktor Kim",
+        "owner_type": "Individual",
+        "owner_country": "Germany",
+        "ownership_pct": 75,
+        "is_ubo": true,
+        "ubo_name": "Viktor Kim",
+        "shell_flag": false,
+        "notes": "Direct majority shareholder. Resident: Germany."
+      }
+    ],
+    "ubo_name": "Viktor Kim",
+    "ubo_country": "Germany",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Phoenix Remittance": {
+    "entity_name": "Phoenix Remittance",
+    "entity_country": "Nigeria",
+    "kyc_level": "Enhanced",
+    "tier": "Low",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Pacific Associates Corp",
+        "owner_type": "Corporate",
+        "owner_country": "Nigeria",
+        "ownership_pct": 75,
+        "is_ubo": false,
+        "ubo_name": "Yuki Petrov",
+        "shell_flag": false,
+        "notes": "Intermediate holding company registered in Nigeria. Standard corporate structure."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Yuki Petrov",
+        "owner_type": "Individual",
+        "owner_country": "Cayman Islands",
+        "ownership_pct": 75,
+        "is_ubo": true,
+        "ubo_name": "Yuki Petrov",
+        "shell_flag": false,
+        "notes": "Ultimate beneficial owner. Resident: Cayman Islands."
+      }
+    ],
+    "ubo_name": "Yuki Petrov",
+    "ubo_country": "Cayman Islands",
+    "chain_depth": 2,
+    "has_offshore": true,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Ryan LLC": {
+    "entity_name": "Ryan LLC",
+    "entity_country": "Ghana",
+    "kyc_level": "Premium",
+    "tier": "Standard",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Ryan LLC",
+        "owner_type": "Individual",
+        "owner_country": "Ghana",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Ryan LLC",
+        "shell_flag": false,
+        "notes": "Direct individual account holder. No intermediate corporate structure."
+      }
+    ],
+    "ubo_name": "Ryan LLC",
+    "ubo_country": "Ghana",
+    "chain_depth": 1,
+    "has_offshore": false,
+    "shell_flag": false,
+    "generated": true
+  },
+  "Harborline Maritime LLC": {
+    "entity_name": "Harborline Maritime LLC",
+    "entity_country": "USA",
+    "kyc_level": "Basic",
+    "tier": "High",
+    "ownership_chain": [
+      {
+        "layer": 1,
+        "owner_name": "Trident Holdings Ltd",
+        "owner_type": "Corporate",
+        "owner_country": "Cayman Islands",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Iryna Petrovna Krasilnikova",
+        "shell_flag": true,
+        "notes": "Cayman Islands holding company. No identifiable operational activity. Nominee directors. SDN-103."
+      },
+      {
+        "layer": 2,
+        "owner_name": "Kranskaya Corp",
+        "owner_type": "Corporate",
+        "owner_country": "Cyprus",
+        "ownership_pct": 100,
+        "is_ubo": false,
+        "ubo_name": "Iryna Petrovna Krasilnikova",
+        "shell_flag": true,
+        "notes": "Cyprus shell company. Registered agent only. No operational staff. SDN-102."
+      },
+      {
+        "layer": 3,
+        "owner_name": "Iryna Petrovna Krasilnikova",
+        "owner_type": "Individual",
+        "owner_country": "Russia",
+        "ownership_pct": 100,
+        "is_ubo": true,
+        "ubo_name": "Iryna Petrovna Krasilnikova",
+        "shell_flag": false,
+        "notes": "OFAC SDN designated individual. SDN-101. UKRAINE-EO13685 / RUSSIA-EO14024."
+      }
+    ],
+    "ubo_name": "Iryna Petrovna Krasilnikova",
+    "ubo_country": "Russia",
+    "chain_depth": 3,
+    "has_offshore": true,
+    "shell_flag": true,
+    "generated": false
+  }
+}
