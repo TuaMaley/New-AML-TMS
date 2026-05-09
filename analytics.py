@@ -164,14 +164,53 @@ def get_executive_dashboard(period: str = "quarterly") -> dict:
 
     # Typology breakdown — computed from actual alert typologies
     alerts_data, _, _ = _load_live_data()
-    typo_counts = {}
-    for t in TYPOLOGIES:
-        # Count real alerts matching each typology
-        real_count = sum(1 for a in alerts_data
-                        if t.lower().split('/')[0].strip() in
-                           a.get("typology","").lower())
-        # Supplement with scaled random for typologies not in seed data
-        typo_counts[t] = real_count if real_count > 0 else random.randint(1, 8)
+    # Typology grouping — maps exact dataset typology labels to display groups
+    _TYPO_GROUPS = {
+        "Structuring / threshold evasion":  "Structuring",
+        "Smurfing pattern":                 "Structuring",
+        "FX structuring":                   "Structuring",
+        "Cross-border layering":            "Layering",
+        "Shell company / network layering": "Layering",
+        "Shell company network":            "Layering",
+        "Sanctions-adjacent activity":      "Sanctions",
+        "Crypto / virtual asset layering":  "Crypto/Virtual Assets",
+        "Crypto conversion":                "Crypto/Virtual Assets",
+        "Trade-based money laundering":     "Trade-Based AML",
+        "Fraud / cybercrime proceeds":      "Fraud/Cybercrime",
+    }
+    typo_counts = {t: 0 for t in TYPOLOGIES}
+    typo_counts["Other"] = 0
+    for a in alerts_data:
+        raw_typo = a.get("typology", "") or ""
+        # Try exact group map first
+        matched = False
+        for raw_key, group in _TYPO_GROUPS.items():
+            if raw_key.lower() == raw_typo.lower():
+                if group in typo_counts:
+                    typo_counts[group] += 1
+                else:
+                    typo_counts["Other"] = typo_counts.get("Other", 0) + 1
+                matched = True
+                break
+        if not matched and raw_typo:
+            # Fuzzy fallback — find closest group
+            rtl = raw_typo.lower()
+            if any(w in rtl for w in ["structur","smurf","threshold","fx struct"]):
+                typo_counts["Structuring"] = typo_counts.get("Structuring", 0) + 1
+            elif any(w in rtl for w in ["layer","shell","cross-border","crossborder"]):
+                typo_counts["Layering"] = typo_counts.get("Layering", 0) + 1
+            elif "sanction" in rtl:
+                typo_counts["Sanctions"] = typo_counts.get("Sanctions", 0) + 1
+            elif any(w in rtl for w in ["crypto","virtual","bitcoin"]):
+                typo_counts["Crypto/Virtual Assets"] = typo_counts.get("Crypto/Virtual Assets", 0) + 1
+            elif any(w in rtl for w in ["trade","tbml","invoic"]):
+                typo_counts["Trade-Based AML"] = typo_counts.get("Trade-Based AML", 0) + 1
+            elif any(w in rtl for w in ["fraud","cyber","crime","bec"]):
+                typo_counts["Fraud/Cybercrime"] = typo_counts.get("Fraud/Cybercrime", 0) + 1
+            else:
+                typo_counts["Other"] = typo_counts.get("Other", 0) + 1
+    # Remove zero-count entries and "Other" if empty
+    typo_counts = {k: v for k, v in typo_counts.items() if v > 0}
 
     channel_counts = {}
     for c in CHANNELS:

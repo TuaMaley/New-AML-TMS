@@ -625,8 +625,9 @@ async function dashboard() {
   }
   const stats = await api('/api/stats') || {};
   $('content').innerHTML = `
-<div class="mrow">
-  <div class="mc"><div class="ml">Alerts today</div><div class="mv">${stats.alerts_today||'—'}</div><div class="md r">${stats.critical_alerts||0} critical open</div></div>
+<div class="mrow" style="grid-template-columns:repeat(5,1fr)">
+  <div class="mc"><div class="ml">Total Alerts</div><div class="mv">${stats.alerts_today||'—'}</div><div class="md r">${stats.critical_alerts||0} critical · ${stats.high_alerts||0} high</div></div>
+  <div class="mc"><div class="ml">Today&#39;s Alerts</div><div class="mv" id="dash-today-alerts">—</div><div class="md">Live feed · current session</div></div>
   <div class="mc"><div class="ml">False-positive rate (ML)</div><div class="mv" style="color:var(--green)">${stats.fp_rate_pct !== undefined ? stats.fp_rate_pct+'%' : '—'}</div><div class="md" style="color:var(--green)">↓ ${stats.fp_reduction_pct||80}% vs ${stats.rule_based_baseline_pct||89}% rule-based</div></div>
   <div class="mc"><div class="ml">SARs filed (30d)</div><div class="mv">${stats.sar_filed_30d||'—'}</div><div class="md">↑ 2 from prior period</div></div>
   <div class="mc"><div class="ml">Avg. review time</div><div class="mv">${stats.avg_review_time_h||'—'}h</div><div class="md">↓ ${stats.investigator_hours_saved_pct||51}% vs baseline</div></div>
@@ -694,6 +695,16 @@ async function dashboard() {
       <td>${pb(a.priority)}</td><td>${sb(a.status)}</td></tr>`).join('')}
     </tbody></table>`;
   $('alert-count').textContent = (adata.alerts||[]).filter(a=>a.status==='open').length;
+
+  // Refresh stats now that ingestion is complete — updates Total Alerts with real count
+  var freshStats = await api('/api/stats') || {};
+  if (freshStats.alerts_today) {
+    // Update the Total Alerts metric card
+    var mvEls = document.querySelectorAll('.mc .mv');
+    if (mvEls.length > 0) mvEls[0].textContent = freshStats.alerts_today;
+    var mdEls = document.querySelectorAll('.mc .md');
+    if (mdEls.length > 0) mdEls[0].textContent = (freshStats.critical_alerts||0) + ' critical · ' + (freshStats.high_alerts||0) + ' high';
+  }
 
   // Inject model performance card container
   var perfContainer = document.getElementById('modelPerfCard');
@@ -1128,6 +1139,13 @@ async function alerts() {
   const aReview   = rows.filter(a=>a.status==='review').length;
   const aFiled    = rows.filter(a=>a.status==='filed').length;
   const aCleared  = rows.filter(a=>a.status==='cleared').length;
+  // Today's alerts — match timestamp date to today
+  var _todayStr = new Date().toISOString().slice(0,10);
+  var aToday = rows.filter(function(a){
+    return String(a.timestamp||a.time||'').slice(0,10) === _todayStr;
+  }).length;
+  // In demo mode dataset dates are historical — supplement with live-feed session count
+  if (aToday === 0) aToday = window._todayAlertCount || 0;
   const aCritical = rows.filter(a=>a.priority==='critical').length;
   const avgScore  = Math.round(rows.filter(a=>a.status==='open').reduce((s,a)=>s+a.score,0)/Math.max(1,aOpen));
   const sarPend   = rows.filter(a=>a.status==='open'&&a.priority==='critical').length;
@@ -1157,7 +1175,14 @@ async function alerts() {
 
   function renderAlertTable(filter) {
     window._alertFilter = filter;
+    var _tDate = new Date().toISOString().slice(0,10);
     var baseFiltered = filter==='all'     ? rows :
+                       filter==='today'   ? rows.filter(function(a){
+                           var ts = a.timestamp || a.time || '';
+                           var matchDate = String(ts).slice(0,10) === _tDate;
+                           // Fallback for demo: show live-feed alerts tracked this session
+                           return matchDate;
+                         }) :
                        filter==='open'    ? rows.filter(function(a){return a.status==='open';}) :
                        filter==='review'  ? rows.filter(function(a){return a.status==='review';}) :
                        filter==='filed'   ? rows.filter(function(a){return a.status==='filed';}) :
@@ -1166,7 +1191,7 @@ async function alerts() {
     var filtered = applyAdvancedFilter(baseFiltered);
 
     // Update tab active states
-    ['all','open','review','filed','closed'].forEach(function(t) {
+    ['all','today','open','review','filed','closed'].forEach(function(t) {
       var el = document.getElementById('atab-'+t);
       if (el) {
         el.style.background  = (filter===t) ? 'var(--accent)' : 'transparent';
@@ -1239,6 +1264,7 @@ async function alerts() {
 
   var tabs = [
     {id:'all',    label:'All (' + rows.length + ')'},
+    {id:'today',  label:'Today (' + aToday + ')'},
     {id:'open',   label:'Open (' + aOpen + ')'},
     {id:'review', label:'Review (' + aReview + ')'},
     {id:'filed',  label:'Filed (' + aFiled + ')'},
@@ -1255,7 +1281,14 @@ async function alerts() {
 
   // Advanced filter panel
   var selStyle = 'background:var(--bg2);color:var(--tx1);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer';
-  var advFilterHtml = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;padding:10px 12px;background:var(--bg2);border-radius:8px">'
+  // Banner when navigated here from donut chart
+  var donutBanner = (window._alertAdvanced && window._alertAdvanced.typology)
+    ? '<div style="margin-bottom:8px;padding:7px 12px;background:rgba(30,80,180,0.10);border:1px solid rgba(30,80,180,0.25);border-radius:6px;display:flex;align-items:center;justify-content:space-between">'
+      + '<span style="font-size:11px;color:#5b8dee">&#128202; Showing alerts for: <strong>' + window._alertAdvanced.typology + '</strong></span>'
+      + '<button style="background:none;border:none;color:var(--tx2);font-size:11px;cursor:pointer;padding:0" onclick="window._alertAdvanced.typology=\'\';window._renderAlertTable(window._alertFilter)">&#10005; Clear</button>'
+      + '</div>'
+    : '';
+  var advFilterHtml = donutBanner + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;padding:10px 12px;background:var(--bg2);border-radius:8px">'
     + '<span style="font-size:11px;color:var(--tx2);font-weight:500">&#9881; Filters:</span>'
     + '<select id="af-channel" style="' + selStyle + '" onchange="window._alertAdvanced.channel=this.value;window._renderAlertTable(window._alertFilter)">'
     + '<option value="">All channels</option>'
@@ -2703,6 +2736,17 @@ function startLiveFeed() {
     feed.prepend(row);
     while(feed.children.length>8)feed.removeChild(feed.lastChild);
     $('txn-rate').innerHTML=`<span class="dot"></span>${((txn.score||0),(12800+Math.round(Math.random()*400))).toLocaleString()} txns/min`;
+    // Increment today's alerts counter when a live alert fires
+    if (txn.alert_id) {
+      window._todayAlertCount = (window._todayAlertCount || 0) + 1;
+      var todayEl = document.getElementById('dash-today-alerts');
+      if (todayEl) {
+        todayEl.textContent = window._todayAlertCount;
+        todayEl.style.color = 'var(--red)';
+        var todayMd = todayEl.closest && todayEl.closest('.mc') ? todayEl.closest('.mc').querySelector('.md') : null;
+        if (todayMd) todayMd.textContent = window._todayAlertCount + ' alert' + (window._todayAlertCount !== 1 ? 's' : '') + ' this session';
+      }
+    }
   }
   tick();
   _liveFeedTimer=setInterval(tick,1100);
@@ -4994,8 +5038,39 @@ async function analytics() {
     scales:{y:{ticks:{font:{size:9}}},y2:{position:'right',ticks:{font:{size:9}},grid:{display:false}},x:{ticks:{font:{size:9}},grid:{display:false}}}}});
   const bd = data.breakdown?.by_typology || {};
   _chartInst.typo = new C($('typoChart'),{type:'doughnut',data:{
-    labels:Object.keys(bd),datasets:[{data:Object.values(bd),backgroundColor:['#1E50B4','#7832B4','#E24B4A','#1EA064','#B8490A','#0F6E56','#8892AA','#BA7517'],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:9,font:{size:10},padding:6}}}}});
+    labels:Object.keys(bd),datasets:[{data:Object.values(bd),backgroundColor:['#1E50B4','#7832B4','#E24B4A','#1EA064','#B8490A','#0F6E56','#8892AA','#BA7517'],borderWidth:0,hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{boxWidth:9,font:{size:10},padding:6}},
+        tooltip:{callbacks:{label:function(ctx){return ' '+ctx.label+': '+ctx.parsed+' alerts';}}},
+      },
+      onClick:function(evt,elements){
+        if(!elements||!elements.length) return;
+        var idx = elements[0].index;
+        var label = Object.keys(bd)[idx] || '';
+        if(!label) return;
+        // Map chart label to actual typology string used in alerts
+        var _TYPO_MAP = {
+          'Structuring':          'Structuring / threshold evasion',
+          'Layering':             'Cross-border layering',
+          'Sanctions':            'Sanctions-adjacent activity',
+          'Crypto/Virtual Assets':'Crypto / virtual asset layering',
+          'Trade-Based AML':      'Trade-based money laundering',
+          'Fraud/Cybercrime':     'Fraud / cybercrime proceeds',
+        };
+        var typoFilter = _TYPO_MAP[label] || label;
+        // Navigate to Alert Queue with typology pre-filtered
+        window._alertAdvanced = window._alertAdvanced || {};
+        window._alertAdvanced.typology = typoFilter;
+        window._alertAdvanced.channel  = '';
+        window._alertAdvanced.priority = '';
+        window._alertAdvanced.country  = '';
+        window._alertFilter = 'all';
+        window.go('alerts');
+      },
+      onHover:function(evt,elements){
+        evt.native.target.style.cursor = elements&&elements.length ? 'pointer' : 'default';
+      },
+    }});
   // Benchmarks
   const bm = data.benchmarks||{};
   $('bench-panel').innerHTML = `

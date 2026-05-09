@@ -872,8 +872,23 @@ def get_system_stats():
     critical_alerts = [a for a in all_alerts if a["priority"] == "critical"]
     high_alerts     = [a for a in all_alerts if a["priority"] == "high"]
 
-    # Alerts "today" = all in store (in production: filter by timestamp[:10] == today)
+    # Total alerts in store (full dataset)
     alerts_today = len(all_alerts)
+
+    # Today's alerts — filter by actual date (timestamp[:10] == today's date)
+    _today_str = datetime.now().strftime("%Y-%m-%d")
+    today_alerts = sum(
+        1 for a in all_alerts
+        if str(a.get("timestamp", ""))[:10] == _today_str
+    )
+    # In demo mode the dataset has historical dates so today_alerts may be 0
+    # In that case show the live-feed count from INGESTED_TRANSACTIONS today
+    if today_alerts == 0:
+        today_alerts = sum(
+            1 for t in INGESTED_TRANSACTIONS
+            if str(t.get("timestamp", ""))[:10] == _today_str
+            and (t.get("is_suspicious") == 1 or t.get("ml_score", 0) >= 55)
+        )
 
     # Cleared today (status == cleared)
     cleared_today = len(cleared_alerts)
@@ -946,6 +961,7 @@ def get_system_stats():
     return {
         # Alert metrics — all computed from actual ALERTS records
         "alerts_today":               alerts_today,
+        "today_alerts":               today_alerts,
         "open_alerts":                len(open_alerts),
         "review_alerts":              len(review_alerts),
         "critical_alerts":            len(critical_alerts),
