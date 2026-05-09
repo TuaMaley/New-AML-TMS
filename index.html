@@ -623,11 +623,15 @@ async function dashboard() {
     await new Promise(res => setTimeout(res, 1200));
     attempts++;
   }
-  const stats = await api('/api/stats') || {};
+  // Fetch stats + alerts + typology data — all after ready poll confirms ingestion complete
+  const stats       = await api('/api/stats') || {};
+  const execData    = await api('/api/analytics/executive?period=quarterly') || {};
+  const typoData    = (execData.breakdown||{}).by_typology || {};
+
   $('content').innerHTML = `
 <div class="mrow" style="grid-template-columns:repeat(5,1fr)">
   <div class="mc"><div class="ml">Total Alerts</div><div class="mv" id="dash-total-alerts">${stats.total_alerts_in_store||stats.alerts_today||'—'}</div><div class="md r" id="dash-total-sub">${stats.critical_alerts||0} critical · ${stats.high_alerts||0} high</div></div>
-  <div class="mc"><div class="ml">Today&#39;s Alerts</div><div class="mv" id="dash-today-alerts">—</div><div class="md">Live feed · current session</div></div>
+  <div class="mc"><div class="ml">Today&#39;s Alerts</div><div class="mv" id="dash-today-alerts">${stats.today_alerts||0}</div><div class="md" id="dash-today-sub">${(stats.today_alerts||0) > 0 ? (stats.today_alerts)+' alert(s) today' : 'No new alerts today'}</div></div>
   <div class="mc"><div class="ml">False-positive rate (ML)</div><div class="mv" style="color:var(--green)">${stats.fp_rate_pct !== undefined ? stats.fp_rate_pct+'%' : '—'}</div><div class="md" style="color:var(--green)">↓ ${stats.fp_reduction_pct||80}% vs ${stats.rule_based_baseline_pct||89}% rule-based</div></div>
   <div class="mc"><div class="ml">SARs filed (30d)</div><div class="mv">${stats.sar_filed_30d||'—'}</div><div class="md">↑ 2 from prior period</div></div>
   <div class="mc"><div class="ml">Avg. review time</div><div class="mv">${stats.avg_review_time_h||'—'}h</div><div class="md">↓ ${stats.investigator_hours_saved_pct||51}% vs baseline</div></div>
@@ -666,26 +670,70 @@ async function dashboard() {
 </div>
 <div class="g3">
   <div class="card"><div class="ch"><span class="ct">Alert volume — 30 days (ML vs rule-based)</span></div><div class="cb"><div class="cw"><canvas id="volChart"></canvas></div></div></div>
-  <div class="card"><div class="ch"><span class="ct">Alert type breakdown</span></div><div class="cb"><div class="cw"><canvas id="typeChart"></canvas></div></div></div>
+  <div class="card"><div class="ch"><span class="ct">Alert type breakdown</span><span style="font-size:11px;color:var(--tx2);margin-left:6px">· click segment to filter</span></div><div class="cb"><div class="cw"><canvas id="typeChart"></canvas></div></div></div>
 </div>
 <div class="g2">
   <div class="card"><div class="ch"><span class="ct">Recent alerts</span><span style="font-size:11px;color:var(--mid);cursor:pointer" onclick="go('alerts')">View all →</span></div><div id="alert-preview" style="padding:0"></div></div>
   <div class="card"><div class="ch"><span class="ct">Live transaction feed</span><span style="font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px"><span class="dot"></span>Live</span></div><div id="live-feed" style="height:240px;overflow:hidden;padding:8px 12px"></div></div>
 </div>`;
 
-  // Charts
+  // ── Charts ────────────────────────────────────────────────────────────────
   _chartInst.vol = new Chart($('volChart'),{type:'line',data:{
     labels:Array.from({length:30},(_,i)=>`D-${30-i}`),
     datasets:[
       {label:'Rule-based',data:Array.from({length:30},()=>Math.round(135+Math.random()*25)),borderColor:'#D8DCE8',borderWidth:1.5,pointRadius:0,tension:.3,fill:false},
       {label:'AI/ML',data:Array.from({length:30},()=>Math.round(72+Math.random()*18)),borderColor:'#1E50B4',borderWidth:2,pointRadius:0,tension:.3,fill:{target:'origin',above:'rgba(30,80,180,.06)'}},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},scales:{x:{ticks:{maxTicksLimit:6,font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}}}}});
-  _chartInst.type = new Chart($('typeChart'),{type:'doughnut',data:{
-    labels:['Structuring','Layering','Sanctions','Crypto','Trade AML','Other'],
-    datasets:[{data:[32,24,18,12,8,6],backgroundColor:['#1E50B4','#7832B4','#E24B4A','#1EA064','#B8490A','#8892AA'],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:9,font:{size:10},padding:7}}}}});
 
-  // Alert preview
+  // ── Donut chart — real data from analytics API, onClick navigates to alerts ──
+  var typoLabels  = Object.keys(typoData);
+  var typoValues  = Object.values(typoData);
+  // Map display label → exact typology string used in alerts dataset
+  // Maps chart group label → ALL typology strings that belong to it
+  var _TYPO_MAP = {
+    'Layering':             ['Cross-border layering','Shell company / network layering','Shell company network'],
+    'Structuring':          ['Structuring / threshold evasion','Smurfing pattern','FX structuring'],
+    'Trade-Based AML':      ['Trade-based money laundering'],
+    'Crypto/Virtual Assets':['Crypto / virtual asset layering','Crypto conversion'],
+    'Fraud/Cybercrime':     ['Fraud / cybercrime proceeds'],
+    'Sanctions':            ['Sanctions-adjacent activity'],
+  };
+  _chartInst.type = new Chart($('typeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: typoLabels,
+      datasets: [{
+        data: typoValues,
+        backgroundColor: ['#7832B4','#1E50B4','#B8490A','#0F6E56','#E24B4A','#1EA064','#8892AA','#BA7517'],
+        borderWidth: 0,
+        hoverOffset: 10,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'right', labels:{ boxWidth:9, font:{size:10}, padding:7 } },
+        tooltip: { callbacks: { label: function(ctx) { return ' ' + ctx.label + ': ' + ctx.parsed + ' alerts'; } } },
+      },
+      onClick: function(evt, elements) {
+        if (!elements || !elements.length) return;
+        var clickedLabel = typoLabels[elements[0].index] || '';
+        var typoFilter   = _TYPO_MAP[clickedLabel] || [clickedLabel];
+        // Store as array — alert queue renderAlertTable will match any item in array
+        window._alertAdvanced = { typologyGroup: typoFilter, typology:'', channel:'', priority:'', country:'' };
+        window._alertFilter   = 'all';
+        // Use _goFinal directly — it is defined by the time a user can click
+        if (typeof window._goFinal === 'function') { window._goFinal('alerts'); }
+        else if (typeof window.go === 'function')   { window.go('alerts'); }
+      },
+      onHover: function(evt, elements) {
+        evt.native.target.style.cursor = elements && elements.length ? 'pointer' : 'default';
+      },
+    }
+  });
+
+  // ── Alert preview ─────────────────────────────────────────────────────────
   const adata = await api('/api/alerts') || {};
   const alerts = (adata.alerts||[]).slice(0,5);
   $('alert-preview').innerHTML = `<table><thead><tr><th>ID</th><th>Entity</th><th>Score</th><th>Priority</th><th>Status</th></tr></thead><tbody>
@@ -696,22 +744,6 @@ async function dashboard() {
     </tbody></table>`;
   $('alert-count').textContent = (adata.alerts||[]).filter(a=>a.status==='open').length;
 
-  // Refresh stats — update both Total Alerts and Today's Alerts with real backend counts
-  var freshStats = await api('/api/stats') || {};
-  // Total Alerts — use total_alerts_in_store (full ingested dataset)
-  var totalEl = document.getElementById('dash-total-alerts');
-  if (totalEl) totalEl.textContent = freshStats.total_alerts_in_store || freshStats.alerts_today || totalEl.textContent;
-  var totalSub = document.getElementById('dash-total-sub');
-  if (totalSub) totalSub.textContent = (freshStats.critical_alerts||0) + ' critical · ' + (freshStats.high_alerts||0) + ' high';
-  // Today's Alerts — use backend date-filtered count (stable, not live-feed count)
-  var todayEl = document.getElementById('dash-today-alerts');
-  if (todayEl) {
-    var todayCount = freshStats.today_alerts !== undefined ? freshStats.today_alerts : 0;
-    todayEl.textContent = todayCount;
-    todayEl.style.color = todayCount > 0 ? 'var(--red)' : 'var(--tx1)';
-    var todayMd = todayEl.closest && todayEl.closest('.mc') ? todayEl.closest('.mc').querySelector('.md') : null;
-    if (todayMd) todayMd.textContent = todayCount > 0 ? todayCount + ' alert(s) today' : 'No new alerts today';
-  }
 
   // Inject model performance card container
   var perfContainer = document.getElementById('modelPerfCard');
@@ -1170,12 +1202,17 @@ async function alerts() {
   var uniqCountries  = [...new Set(rows.map(function(a){return a.sender_country||a.country||'';}).filter(Boolean))].sort();
 
   function applyAdvancedFilter(rows) {
-    var f = window._alertAdvanced;
+    var f = window._alertAdvanced || {};
     return rows.filter(function(a) {
-      if (f.channel   && a.channel   !== f.channel)   return false;
-      if (f.typology  && a.typology  !== f.typology)  return false;
-      if (f.priority  && a.priority  !== f.priority)  return false;
-      if (f.country   && (a.sender_country||a.country||'') !== f.country) return false;
+      if (f.channel && a.channel !== f.channel) return false;
+      // typologyGroup: array of typology strings (set when navigating from donut chart)
+      if (f.typologyGroup && f.typologyGroup.length) {
+        if (f.typologyGroup.indexOf(a.typology) === -1) return false;
+      } else if (f.typology && a.typology !== f.typology) {
+        return false;
+      }
+      if (f.priority && a.priority !== f.priority) return false;
+      if (f.country  && (a.sender_country||a.country||'') !== f.country) return false;
       return true;
     });
   }
@@ -1289,10 +1326,22 @@ async function alerts() {
   // Advanced filter panel
   var selStyle = 'background:var(--bg2);color:var(--tx1);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer';
   // Banner when navigated here from donut chart
-  var donutBanner = (window._alertAdvanced && window._alertAdvanced.typology)
+  var _hasDonutFilter = window._alertAdvanced && (window._alertAdvanced.typologyGroup && window._alertAdvanced.typologyGroup.length);
+  var _donutGroupLabel = _hasDonutFilter ? Object.keys({
+    'Layering':['Cross-border layering','Shell company / network layering','Shell company network'],
+    'Structuring':['Structuring / threshold evasion','Smurfing pattern','FX structuring'],
+    'Trade-Based AML':['Trade-based money laundering'],
+    'Crypto/Virtual Assets':['Crypto / virtual asset layering','Crypto conversion'],
+    'Fraud/Cybercrime':['Fraud / cybercrime proceeds'],
+    'Sanctions':['Sanctions-adjacent activity'],
+  }).find(function(k){
+    var arr = {'Layering':['Cross-border layering','Shell company / network layering','Shell company network'],'Structuring':['Structuring / threshold evasion','Smurfing pattern','FX structuring'],'Trade-Based AML':['Trade-based money laundering'],'Crypto/Virtual Assets':['Crypto / virtual asset layering','Crypto conversion'],'Fraud/Cybercrime':['Fraud / cybercrime proceeds'],'Sanctions':['Sanctions-adjacent activity']}[k];
+    return arr && JSON.stringify(arr.sort()) === JSON.stringify((window._alertAdvanced.typologyGroup||[]).slice().sort());
+  }) || (window._alertAdvanced.typologyGroup||[]).join(', ') : '';
+  var donutBanner = _hasDonutFilter
     ? '<div style="margin-bottom:8px;padding:7px 12px;background:rgba(30,80,180,0.10);border:1px solid rgba(30,80,180,0.25);border-radius:6px;display:flex;align-items:center;justify-content:space-between">'
-      + '<span style="font-size:11px;color:#5b8dee">&#128202; Showing alerts for: <strong>' + window._alertAdvanced.typology + '</strong></span>'
-      + '<button style="background:none;border:none;color:var(--tx2);font-size:11px;cursor:pointer;padding:0" onclick="window._alertAdvanced.typology=\'\';window._renderAlertTable(window._alertFilter)">&#10005; Clear</button>'
+      + '<span style="font-size:11px;color:#5b8dee">&#128202; Showing alerts for: <strong>' + _donutGroupLabel + '</strong> (' + (window._alertAdvanced.typologyGroup||[]).length + ' typologies)</span>'
+      + '<button style="background:none;border:none;color:var(--tx2);font-size:11px;cursor:pointer;padding:0" onclick="window._alertAdvanced.typologyGroup=[];window._renderAlertTable(window._alertFilter)">&#10005; Clear</button>'
       + '</div>'
     : '';
   var advFilterHtml = donutBanner + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;padding:10px 12px;background:var(--bg2);border-radius:8px">'
