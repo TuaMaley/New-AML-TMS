@@ -608,7 +608,7 @@ async function dashboard() {
   // Shows a live progress indicator rather than stale seed-data numbers
   let ready = false;
   let attempts = 0;
-  while (!ready && attempts < 30) {
+  while (!ready && attempts < 90) {
     const r = await api('/api/ready') || {};
     if (r.ready) { ready = true; break; }
     const pct = Math.min(95, Math.round((r.ingested_transactions||0)/10));
@@ -743,6 +743,30 @@ async function dashboard() {
       <td>${pb(a.priority)}</td><td>${sb(a.status)}</td></tr>`).join('')}
     </tbody></table>`;
   $('alert-count').textContent = (adata.alerts||[]).filter(a=>a.status==='open').length;
+
+
+  // ── Guaranteed stats refresh — runs AFTER all data is loaded ─────────────
+  // This ensures Total Alerts always shows the real ingested count, not seed data (6)
+  var _finalStats = await api('/api/stats') || {};
+  var _totalEl = document.getElementById('dash-total-alerts');
+  var _totalSub = document.getElementById('dash-total-sub');
+  var _todayEl = document.getElementById('dash-today-alerts');
+  var _todaySub = document.getElementById('dash-today-sub');
+  if (_totalEl && _finalStats.total_alerts_in_store) {
+    _totalEl.textContent = _finalStats.total_alerts_in_store;
+  }
+  if (_totalSub && _finalStats.critical_alerts !== undefined) {
+    _totalSub.textContent = (_finalStats.critical_alerts||0) + ' critical · ' + (_finalStats.high_alerts||0) + ' high';
+  }
+  if (_todayEl && _finalStats.today_alerts !== undefined) {
+    _todayEl.textContent = _finalStats.today_alerts || 0;
+    _todayEl.style.color = (_finalStats.today_alerts||0) > 0 ? 'var(--red)' : 'var(--tx1)';
+  }
+  if (_todaySub && _finalStats.today_alerts !== undefined) {
+    _todaySub.textContent = (_finalStats.today_alerts||0) > 0
+      ? (_finalStats.today_alerts) + ' alert(s) today'
+      : 'No new alerts today';
+  }
 
 
   // Inject model performance card container
