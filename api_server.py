@@ -742,12 +742,7 @@ def run(port=None):
     server_thread.start()
     print(f"  Port {port} bound", flush=True)
 
-    # ── Step 2: Train ML engine (~3s) ─────────────────────────────────────────
-    print("  Training ML models...", flush=True)
-    get_engine()
-    print("  ML engine ready", flush=True)
-
-    # ── Step 3: Ingest dataset (<1s batch) ────────────────────────────────────
+    # ── Step 2: Ingest dataset FIRST — does not need ML engine ──────────────
     try:
         import data_store as _ds
         if not _ds.DATASET_INGESTION_DONE:
@@ -755,12 +750,29 @@ def run(port=None):
             _ds.DATASET_INGESTION_DONE = True
         print(f"  {len(_ds.ALERTS)} alerts loaded", flush=True)
     except Exception as _e:
-        print(f"  Ingestion warning: {_e}", flush=True)
+        import traceback
+        print(f"  Ingestion error: {_e}", flush=True)
+        traceback.print_exc()
 
-    # ── Step 4: Mark ready — /api/health now returns status=ok ───────────────
+    # ── Step 3: Mark ready immediately after ingestion ────────────────────────
+    # Browser can now load the dashboard with real alert counts
     _SERVER_READY = True
     print(f"  READY — {len(FRONTEND_HTML)} bytes frontend", flush=True)
     print(f"{'='*55}\n", flush=True)
+
+    # ── Step 4: Train ML engine in background (used by Live Scorer only) ──────
+    # Non-blocking — does not affect dashboard loading
+    def _bg_train():
+        try:
+            print("  [Background] Training ML models...", flush=True)
+            get_engine()
+            print("  [Background] ML engine ready", flush=True)
+        except Exception as _e:
+            print(f"  [Background] ML training warning: {_e}", flush=True)
+    import threading as _thr
+    _thr.Thread(target=_bg_train, daemon=True).start()
+
+    # ── (ready is already set at Step 3) ────────────────────────────────────
 
     try:
         server_thread.join()
