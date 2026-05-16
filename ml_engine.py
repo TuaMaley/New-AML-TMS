@@ -363,6 +363,32 @@ _engine = None
 
 def get_engine():
     global _engine
-    if _engine is None:
-        _engine = MLEngine()
+    if _engine is not None:
+        return _engine
+
+    import os as _os, joblib as _jl
+    _cache = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 'ml_model_cache.pkl')
+
+    # Try loading cached models — saves ~5-10s on cold starts
+    if _os.path.exists(_cache):
+        try:
+            _cached = _jl.load(_cache)
+            _engine = MLEngine.__new__(MLEngine)
+            _engine.models  = _cached['models']
+            _engine.scaler  = _cached['scaler']
+            _engine.metrics = _cached.get('metrics', {})
+            _engine.trained = True
+            print("[MLEngine] Loaded from cache (skipping training)", flush=True)
+            return _engine
+        except Exception as _e:
+            print(f"[MLEngine] Cache load failed ({_e}), retraining...", flush=True)
+
+    # No cache — train fresh and save for next startup
+    _engine = MLEngine()
+    try:
+        _jl.dump({'models': _engine.models, 'scaler': _engine.scaler,
+                  'metrics': _engine.metrics}, _cache, compress=3)
+        print(f"[MLEngine] Model cache saved ({_os.path.getsize(_cache)//1024} KB)", flush=True)
+    except Exception as _e:
+        print(f"[MLEngine] Cache save failed: {_e}", flush=True)
     return _engine
