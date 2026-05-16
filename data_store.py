@@ -232,445 +232,207 @@ _load_raw_transactions()
 
 INGESTED_TRANSACTIONS = []   # scored records stored here after ML scoring
 
+
+def _build_case_narrative(entity, typology, score, priority, txn):
+    """Compact FinCEN-style SAR narrative from dataset fields."""
+    amount       = txn.get("amount", 0)
+    channel      = txn.get("channel", "Wire Transfer")
+    currency     = txn.get("currency", "USD")
+    sender_bank  = txn.get("sender_bank", "")
+    sender_country = txn.get("sender_country", "")
+    kyc_level    = txn.get("kyc_level", "Standard")
+    tier         = txn.get("tier", "Standard")
+    juris        = txn.get("jurisdiction", "Standard")
+    vel3d        = float(txn.get("velocity_3d", 0))
+    prior_sars   = int(txn.get("prior_sars", 0))
+    bene_name    = txn.get("bene_name", "")
+    bene_country = txn.get("bene_country", "")
+    bene_bl      = int(txn.get("bene_blacklist", 0))
+    drift        = float(txn.get("behavioral_drift", 0))
+    graph_c      = float(txn.get("graph_centrality", 0))
+    cp_degree    = int(txn.get("counterparty_degree", 0))
+    acct_age     = int(txn.get("account_age_days", 0))
+    payment_rail = txn.get("payment_rail", "")
+    ref_num      = txn.get("reference_number", "")
+    analyst_dec  = txn.get("analyst_decision", "")
+
+    risk_factors = []
+    if score >= 90:   risk_factors.append(f"composite ML risk score {score}/100 (critical)")
+    elif score >= 70: risk_factors.append(f"elevated ML risk score {score}/100")
+    if prior_sars:    risk_factors.append(f"{prior_sars} prior SAR(s) on record")
+    if vel3d > 200:   risk_factors.append(f"3-day velocity spike: {vel3d:.0f}%")
+    if bene_bl:       risk_factors.append("beneficiary on blacklist/sanctions watch-list")
+    if juris in ("High","OFAC-adjacent","Elevated"): risk_factors.append(f"jurisdiction risk: {juris}")
+    if tier in ("High","PEP"):  risk_factors.append(f"customer risk tier: {tier}")
+    if drift > 0.5:   risk_factors.append(f"behavioural drift: {drift:.3f}")
+    if graph_c > 0.5: risk_factors.append(f"graph centrality: {graph_c:.4f}")
+    if acct_age < 90: risk_factors.append(f"new account ({acct_age} days old)")
+    risk_str = (" Key risk indicators: " + "; ".join(risk_factors[:5]) + ".") if risk_factors else ""
+
+    bene_str = f"Beneficiary: {bene_name} ({bene_country})" if bene_name else ""
+    if bene_bl: bene_str += " *** BLACKLIST FLAG ***"
+
+    return (
+        f"FinCEN SAR NARRATIVE — {entity}\n"
+        f"{'='*60}\n\n"
+        f"PART I — SUBJECT\n"
+        f"Entity: {entity} | Bank: {sender_bank} | Country: {sender_country}\n"
+        f"KYC: {kyc_level} | Tier: {tier} | Jurisdiction: {juris} | Prior SARs: {prior_sars}\n\n"
+        f"PART II — TRANSACTION\n"
+        f"Amount: ${amount:,.2f} {currency} | Channel: {channel} | Rail: {payment_rail}\n"
+        f"Reference: {ref_num}\n"
+        f"{bene_str}\n\n"
+        f"PART III — SUSPICIOUS ACTIVITY\n"
+        f"Entity {entity} flagged for {typology} (score {score}/100 — {priority.upper()}).{risk_str}\n\n"
+        f"PART IV — COUNTERPARTY NETWORK\n"
+        f"Counterparty degree: {cp_degree} | Graph centrality: {graph_c:.4f} | Drift: {drift:.3f}\n\n"
+        f"PART V — RECOMMENDED ACTIONS\n"
+        f"(1) Review all transaction records; (2) Enhanced due diligence on counterparties; "
+        f"(3) Assess SAR filing under 31 U.S.C. 5318(g); (4) Consider account restriction.\n"
+        f"Analyst decision: {analyst_dec or 'Pending review'}\n\n"
+        f"Retain documentation 5 years per 31 C.F.R. 1010.430."
+    )
+
+
 def _ingest_dataset():
     """
-    Score all 1,000 raw transactions through the ML engine using batch numpy
-    scoring (single matrix call — ~10x faster than one-at-a-time).
-    Flushes results into global ALERTS/CASES immediately on completion.
+    Build ALERTS, CASES, and AUDIT_LOG directly from the dataset fields.
+    Every transaction already contains: source_alert_id, source_alert_score,
+    source_case_id, typology_label, analyst_decision, sar_filed, is_suspicious.
+    No ML scoring needed — reads ground-truth labels from the dataset.
+    Runs in <0.1 seconds from JSON cache.
     """
-    import sys, os
-    import numpy as np
-    sys.path.insert(0, os.path.dirname(__file__))
+    import random as _rnd
+    _rnd.seed(42)
 
-    try:
-        from ml_engine import get_engine, FEATURE_COLS
-    except Exception as e:
-        print(f"[DataStore] ML engine not available: {e}", flush=True)
-        return
+    txns = RAW_TRANSACTIONS
+    n = len(txns)
+    print(f"[DataStore] Ingesting {n} transactions (dataset labels)...", flush=True)
 
-    engine = get_engine()
-    n = len(RAW_TRANSACTIONS)
-    print(f"[DataStore] Ingesting {n} transactions (batch scoring)...", flush=True)
+    officers = ["J. Mensah", "A. Owusu", "B. Asante", "K. Boateng"]
 
-    # ── 1. Build feature matrix in one shot ─────────────────────────────────
-    feat_matrix = np.array([[
-        float(t.get("amount", 0)),
-        int(t.get("channel_idx", 0)),
-        int(t.get("tier_idx", 0)),
-        float(t.get("velocity_3d", 0)),
-        float(t.get("velocity_7d", 0)),
-        int(t.get("new_counterparty", 0)),
-        int(t.get("jurisdiction_idx", 0)),
-        int(t.get("round_dollar", 0)),
-        int(t.get("hour_of_day", 0)),
-        int(t.get("counterparty_degree", 0)),
-        int(t.get("cross_border", 0)),
-        int(t.get("account_age_days", 0)),
-        int(t.get("prior_sars", 0)),
-        float(t.get("amount_vs_peer_pct", 0)),
-        int(t.get("multi_currency", 0)),
-        # ── New v2 features ──────────────────────────────────────────────────
-        float(t.get("behavioral_drift", 0)),
-        float(t.get("hist_fraud_rate", 0)),
-        float(t.get("bene_risk_score", 0)),
-        float(t.get("dest_risk_score", 0)),
-        float(t.get("graph_centrality", 0)),
-        int(t.get("bene_blacklist", 0)),
-        int(t.get("failed_logins", 0)),
-        int(t.get("bene_reuse_count", 0)),
-        int(t.get("txn_sequence", 0)),
-        int(t.get("last_txn_gap", 0)),
-    ] for t in RAW_TRANSACTIONS], dtype=float)
-
-    # ── 2. Batch predict across all 4 models ────────────────────────────────
-    try:
-        Xs = engine.scaler.transform(feat_matrix)
-
-        # Isolation Forest — anomaly score (higher = more anomalous)
-        iso_raw    = -engine.models["iso"].score_samples(Xs)
-        iso_min, iso_max = iso_raw.min(), iso_raw.max()
-        iso_scores = ((iso_raw - iso_min) / max(iso_max - iso_min, 1e-9) * 100).astype(int)
-
-        # XGBoost / GradientBoosting — probability of suspicious class
-        xgb_proba  = engine.models["xgb"].predict_proba(Xs)[:, 1]
-        xgb_scores = (xgb_proba * 100).astype(int)
-
-        # GNN proxy (MLP)
-        gnn_proba  = engine.models["gnn"].predict_proba(Xs)[:, 1]
-        gnn_scores = (gnn_proba * 100).astype(int)
-
-        # LSTM proxy (RandomForest)
-        lstm_proba  = engine.models["lstm"].predict_proba(Xs)[:, 1]
-        lstm_scores = (lstm_proba * 100).astype(int)
-
-        # Ensemble: weighted average matching score_transaction()
-        final_scores = (
-            iso_scores  * 0.15 +
-            xgb_scores  * 0.40 +
-            gnn_scores  * 0.25 +
-            lstm_scores * 0.20
-        ).astype(int)
-
-    except Exception as e:
-        print(f"[DataStore] Batch scoring failed, falling back: {e}", flush=True)
-        # Fallback: use individual score_transaction
-        for txn in RAW_TRANSACTIONS:
-            feat = {k: txn[k] for k in FEATURE_COLS if k in txn}
-            try:
-                r = engine.score_transaction(feat)
-                INGESTED_TRANSACTIONS.append({**txn, "ml_score": r["score"],
-                    "ml_priority": r["priority"], "ml_typology": r["typology"],
-                    "ml_shap": r.get("shap",[]), "ml_models": r.get("model_scores",{})})
-            except Exception:
-                pass
-        _flush_ingested_to_stores()
-        return
-
-    # ── 3. Priority + typology mapping ──────────────────────────────────────
-    def _priority(s):
+    def _priority(score):
+        s = float(score or 0)
         if s >= 85: return "critical"
         if s >= 70: return "high"
         if s >= 55: return "medium"
         return "low"
 
-    typology_map = {
-        "Structuring":           "Structuring / threshold evasion",
-        "Layering":              "Cross-border layering",
-        "Sanctions":             "Sanctions-adjacent activity",
-        "Smurfing":              "Structuring / threshold evasion",
-        "Shell Company":         "Shell company / network layering",
-        "Crypto/Virtual Assets": "Crypto / virtual asset layering",
-        "Trade-Based AML":       "Trade-based money laundering",
-        "Fraud/Cybercrime":      "Fraud / cybercrime proceeds",
-        "Clean":                 "Anomalous transaction pattern",
-    }
+    # Build alerts from suspicious transactions (is_suspicious=1)
+    alerts_by_id = {}
+    cases_by_id  = {}
 
-    import random as _rnd; _rnd.seed(42)
-
-    # ── 4. Build scored transaction records ─────────────────────────────────
-    for i, txn in enumerate(RAW_TRANSACTIONS):
-        score    = int(final_scores[i])
-        priority = _priority(score)
-        raw_typo = txn.get("typology_label", "Clean")
-        typology = typology_map.get(raw_typo, raw_typo)
-        models   = {
-            "iso":  int(iso_scores[i]),
-            "xgb":  int(xgb_scores[i]),
-            "gnn":  int(gnn_scores[i]),
-            "lstm": int(lstm_scores[i]),
-        }
-        # Build SHAP attribution — show top 6 most influential features for this txn
-        _shap_candidates = [
-            ("Transaction amount",      round(float(xgb_proba[i])*0.40, 2),  txn.get("amount", 0)),
-            ("3-day velocity change",   round(float(gnn_proba[i])*0.25, 2),  txn.get("velocity_3d", 0)),
-            ("Jurisdiction risk",       round(float(xgb_proba[i])*0.15, 2),  txn.get("jurisdiction_idx", 0)),
-            ("Counterparty degree",     round(float(gnn_proba[i])*0.12, 2),  txn.get("counterparty_degree", 0)),
-            ("Amount vs peer %",        round(float(lstm_proba[i])*0.08, 2), txn.get("amount_vs_peer_pct", 0)),
-            ("Behavioural drift",       round(float(xgb_proba[i]) * txn.get("behavioral_drift", 0) * 0.35, 2), txn.get("behavioral_drift", 0)),
-            ("Historical fraud rate",   round(float(xgb_proba[i]) * min(txn.get("hist_fraud_rate", 0) * 3, 0.30), 2), txn.get("hist_fraud_rate", 0)),
-            ("Beneficiary risk score",  round(float(gnn_proba[i]) * txn.get("bene_risk_score", 0) / 500, 2), txn.get("bene_risk_score", 0)),
-            ("Graph centrality",        round(float(xgb_proba[i]) * txn.get("graph_centrality", 0) * 0.25, 2), txn.get("graph_centrality", 0)),
-            ("Blacklist flag",          round(float(xgb_proba[i]) * txn.get("bene_blacklist", 0) * 0.45, 2), txn.get("bene_blacklist", 0)),
-        ]
-        # Sort by absolute shap value, take top 6
-        _shap_candidates.sort(key=lambda x: abs(x[1]), reverse=True)
-        shap = [
-            {"label": s[0], "shap": s[1], "value": s[2]}
-            for s in _shap_candidates[:6] if s[1] > 0
-        ]
-        if not shap:  # fallback
-            shap = [{"label": "Transaction amount", "shap": round(float(xgb_proba[i])*0.40, 2), "value": txn.get("amount", 0)}]
-        INGESTED_TRANSACTIONS.append({
-            **txn,
-            "ml_score":    score,
-            "ml_priority": priority,
-            "ml_typology": typology,
-            "ml_shap":     shap,
-            "ml_models":   models,
-        })
-
-    # ── 5. Build alerts + cases from scored transactions ────────────────────
-    _flush_ingested_to_stores()
-
-
-def _build_case_narrative(entity, typology, score, priority, txn):
-    """Generate a full FinCEN-compliant BSA/AML investigation narrative using all available transaction fields."""
-    channel      = txn.get("channel", "multiple channels")
-    tier         = txn.get("tier", "Standard")
-    juris        = txn.get("jurisdiction", "Standard")
-    vel3d        = txn.get("velocity_3d", 0)
-    vel7d        = txn.get("velocity_7d", 0)
-    prior_sars   = txn.get("prior_sars", 0)
-    cp_degree    = txn.get("counterparty_degree", 0)
-    acct_age     = txn.get("account_age_days", 0)
-    cross_bdr    = txn.get("cross_border", 0)
-    multi_curr   = txn.get("multi_currency", 0)
-    round_dol    = txn.get("round_dollar", 0)
-    # New fields from v2 dataset
-    ref_num      = txn.get("reference_number", "")
-    currency     = txn.get("currency", "USD")
-    payment_rail = txn.get("payment_rail", "")
-    tx_type      = txn.get("transaction_type", "")
-    narration    = txn.get("narration", "")
-    sender_bank  = txn.get("sender_bank", "")
-    sender_country=txn.get("sender_country", "")
-    kyc_level    = txn.get("kyc_level", "")
-    segment      = txn.get("customer_segment", "")
-    bene_name    = txn.get("bene_name", "")
-    bene_bank    = txn.get("bene_bank", "")
-    bene_country = txn.get("bene_country", "")
-    bene_type    = txn.get("bene_type", "")
-    bene_bl      = txn.get("bene_blacklist", 0)
-    bene_risk    = txn.get("bene_risk_score", 0)
-    dest_risk    = txn.get("dest_risk_score", 0)
-    geo_loc      = txn.get("geo_location", "")
-    ip_addr      = txn.get("ip_address", "")
-    hist_fr      = txn.get("hist_fraud_rate", 0)
-    drift        = txn.get("behavioral_drift", 0)
-    graph_c      = txn.get("graph_centrality", 0)
-    device_id    = txn.get("device_id", "")
-    auth_method  = txn.get("auth_method", "")
-    failed_log   = txn.get("failed_logins", 0)
-    analyst_dec  = txn.get("analyst_decision", "")
-    network_cl   = txn.get("network_cluster", "")
-    amount       = txn.get("amount", 0)
-    sender_acct  = txn.get("sender_account", "")
-
-    # Typology-specific context paragraphs
-    ctx = {
-        "Structuring": (
-            "The transaction pattern is consistent with deliberate threshold evasion. "
-            "Multiple transactions have been identified structured just below the CTR reporting "
-            "threshold of $10,000, a federal offense under 31 U.S.C. section 5324 regardless "
-            "of whether the underlying funds are from a legitimate source."
-        ),
-        "Structuring / threshold evasion": (
-            "Multiple transactions appear deliberately structured below the CTR threshold of $10,000 "
-            "across different time windows to avoid mandatory filing obligations. This pattern of "
-            "structuring is a federal offense under 31 U.S.C. section 5324."
-        ),
-        "Layering": (
-            "The entity has engaged in a series of rapid, complex fund movements across multiple "
-            "accounts and jurisdictions consistent with the layering phase of money laundering. "
-            "Funds are moved in quick succession with no apparent commercial rationale."
-        ),
-        "Shell Company": (
-            "Activity is consistent with use of a shell company structure to obscure beneficial "
-            "ownership. The entity exhibits characteristics typical of nominee control: minimal "
-            "operational footprint and transaction volumes disproportionate to stated business purpose."
-        ),
-        "Smurfing": (
-            "Multiple sub-threshold transactions have been identified across a short time window, "
-            "consistent with a coordinated smurfing operation to avoid CTR detection."
-        ),
-        "Sanctions": (
-            "Transactions indicate potential sanctions exposure. Activity involves counterparties "
-            "or payment channels with elevated OFAC/SDN risk indicators."
-        ),
-        "Crypto/Virtual Assets": (
-            "The entity has engaged in rapid conversion activity consistent with crypto-based "
-            "layering under FinCEN guidance FIN-2013-G001 and FIN-2019-G001."
-        ),
-        "Trade-Based AML": (
-            "Discrepancies in trade finance payment flows indicate possible TBML. "
-            "Over/under-invoicing patterns have been detected relative to market benchmarks."
-        ),
-        "Fraud/Cybercrime": (
-            "Transaction patterns are consistent with proceeds of fraud or cybercrime. Rapid "
-            "outbound wire activity following large inbound credits indicates possible mule account behaviour."
-        ),
-    }
-    context_para = ctx.get(typology,
-        "The detected activity pattern is anomalous relative to the entity peer group and "
-        "historical baseline, warranting further investigation under the institution BSA/AML programme."
-    )
-
-    # Build rich risk factor list using all available fields
-    risk_factors = []
-    if score >= 90:
-        risk_factors.append(f"composite ML risk score of {score}/100 (critical threshold)")
-    elif score >= 75:
-        risk_factors.append(f"elevated ML risk score of {score}/100")
-    if prior_sars > 0:
-        risk_factors.append(f"{prior_sars} prior SAR filing(s) on record")
-    if vel3d > 200 or vel7d > 300:
-        risk_factors.append(f"abnormal transaction velocity ({vel3d:.0f}% 3-day / {vel7d:.0f}% 7-day vs peer baseline)")
-    if cross_bdr:
-        risk_factors.append(f"cross-border activity detected via {payment_rail or channel}")
-    if multi_curr:
-        risk_factors.append(f"multi-currency transactions flagged ({currency})")
-    if round_dol:
-        risk_factors.append("round-dollar structuring pattern detected")
-    if tier in ("High", "PEP"):
-        risk_factors.append(f"customer risk tier: {tier}")
-    if juris in ("High", "OFAC-adjacent", "Elevated"):
-        risk_factors.append(f"jurisdiction risk: {juris}")
-    if cp_degree > 15:
-        risk_factors.append(f"high counterparty network density ({cp_degree} counterparties — Network: {network_cl})")
-    if acct_age < 90:
-        risk_factors.append(f"recently opened account ({acct_age} days old)")
-    if bene_bl:
-        risk_factors.append("beneficiary appears on sanctions/blacklist")
-    if bene_risk > 70:
-        risk_factors.append(f"beneficiary risk score: {bene_risk:.1f}/100")
-    if dest_risk > 70:
-        risk_factors.append(f"destination risk score: {dest_risk:.1f}/100")
-    if hist_fr > 0.05:
-        risk_factors.append(f"historical fraud rate: {hist_fr:.2%}")
-    if drift > 0.5:
-        risk_factors.append(f"behavioral drift score: {drift:.3f} (significant deviation from baseline)")
-    if graph_c > 0.5:
-        risk_factors.append(f"high graph centrality score: {graph_c:.4f} (hub node in transaction network)")
-    if kyc_level == "Basic":
-        risk_factors.append("subject holds Basic KYC level only — enhanced due diligence required")
-    if auth_method and "Single Factor" in auth_method:
-        risk_factors.append("single-factor authentication — elevated session risk")
-    if failed_log > 2:
-        risk_factors.append(f"{failed_log} failed login attempts preceding this session")
-
-    risk_str = ""
-    if risk_factors:
-        risk_str = " Key risk indicators: " + "; ".join(risk_factors[:6]) + "."
-
-    # Build subject details section
-    subject_details = f"Subject entity: {entity}"
-    if sender_acct:   subject_details += f" | Account: {sender_acct[-4:].rjust(8,'*')}"
-    if sender_bank:   subject_details += f" | Bank: {sender_bank}"
-    if sender_country:subject_details += f" | Country: {sender_country}"
-    if kyc_level:     subject_details += f" | KYC: {kyc_level}"
-    if segment:       subject_details += f" | Segment: {segment}"
-
-    # Beneficiary section
-    bene_str = ""
-    if bene_name and bene_name not in (entity, "nan", ""):
-        bene_str = f"\n\nBENEFICIARY: {bene_name}"
-        if bene_bank:    bene_str += f" | Bank: {bene_bank}"
-        if bene_country: bene_str += f" | Country: {bene_country}"
-        if bene_type:    bene_str += f" | Type: {bene_type}"
-        if bene_bl:      bene_str += " | *** BLACKLIST FLAG ***"
-        if bene_risk > 50: bene_str += f" | Risk score: {bene_risk:.1f}/100"
-
-    # Transaction details
-    txn_details = f"Transaction type: {tx_type or channel} | Channel: {channel} | Rail: {payment_rail or 'N/A'} | Currency: {currency}"
-    if ref_num:  txn_details += f" | Ref: {ref_num}"
-    if geo_loc:  txn_details += f" | Location: {geo_loc}"
-    if ip_addr:  txn_details += f" | IP: {ip_addr}"
-    if device_id: txn_details += f" | Device: {device_id}"
-
-    narrative = (
-        "FinCEN SAR NARRATIVE \u2014 CASE RECORD\n"
-        "Filing Institution: First National Compliance Bank (FNCB) | BSA/AML Compliance\n"
-        f"{'='*64}\n\n"
-        "PART I \u2014 SUBJECT INFORMATION\n"
-        f"{subject_details}\n"
-        f"Risk tier: {tier} | Jurisdiction: {juris} | Account age: {acct_age} days | Prior SARs: {prior_sars}\n"
-        f"{bene_str}\n\n"
-        "PART II \u2014 TRANSACTION DETAILS\n"
-        f"{txn_details}\n"
-        f"Amount: ${amount:,.2f} {currency}\n\n"
-        "PART III \u2014 SUSPICIOUS ACTIVITY DESCRIPTION\n"
-        f"Subject entity {entity} was flagged for {typology} activity by the AI/ML ensemble "
-        f"monitoring system with a risk score of {score}/100 ({priority.upper()} priority). "
-        f"Activity was detected via {channel} channel.{risk_str}\n\n"
-        f"{context_para}\n\n"
-        "PART IV \u2014 ML ENSEMBLE FINDINGS\n"
-        "The ML ensemble (Isolation Forest, XGBoost, GNN, LSTM) identified this entity based "
-        f"on anomalous behavioural patterns including velocity deviation ({vel3d:.0f}% 3-day), "
-        f"counterparty network density ({cp_degree} counterparties), and peer-group comparison "
-        f"(amount {txn.get('amount_vs_peer_pct', 0):.0f}% above peer median). "
-        f"Behavioral drift score: {drift:.3f}. Graph centrality: {graph_c:.4f}.\n\n"
-        "PART V \u2014 RECOMMENDED ACTIONS\n"
-        "The investigating officer should: (1) obtain and review all transaction records and "
-        "account opening documentation; (2) conduct enhanced due diligence on identified "
-        "counterparties; (3) assess whether a SAR should be filed with FinCEN under "
-        "31 U.S.C. section 5318(g); (4) determine whether account restriction is warranted.\n\n"
-        "NOTE: This SAR is confidential per 31 U.S.C. section 5318(g)(2). All findings must "
-        "be recorded within 30 calendar days. Retain documentation for 5 years per "
-        "31 C.F.R. section 1010.430."
-    )
-    return narrative
-
-
-
-def _flush_ingested_to_stores():
-    """Convert INGESTED_TRANSACTIONS into ALERTS and CASES and flush to global stores."""
-    import random as _rnd; _rnd.seed(42)
-
-    alert_counter = 2900
-    case_counter  = 450
-    case_map      = {}
-    new_alerts    = []
-    new_cases     = []
-    audit_entries = []
-    officers      = ["J. Mensah", "A. Owusu", "B. Asante", "K. Boateng"]
-
-    for txn in INGESTED_TRANSACTIONS:
-        score    = txn.get("ml_score", 0)
-        priority = txn.get("ml_priority", "low")
-        typology = txn.get("ml_typology", "Unknown")
-        shap     = txn.get("ml_shap", [])
-        models   = txn.get("ml_models", {})
-
-        if score < 55:
+    for txn in txns:
+        if int(txn.get("is_suspicious", 0)) != 1:
             continue
 
-        alert_id = f"ALT-{alert_counter}"; alert_counter += 1
-        entity   = txn["entity_name"]
+        alert_id = str(txn.get("source_alert_id", "")).strip()
+        case_id  = str(txn.get("source_case_id",  "")).strip()
+        score    = int(float(txn.get("source_alert_score") or txn.get("ml_score") or 60))
+        typology = str(txn.get("typology_label", "Unknown")).strip()
+        entity   = str(txn.get("entity_name", "Unknown")).strip()
+        channel  = str(txn.get("channel", "Wire Transfer")).strip()
+        amount   = float(txn.get("amount", 0) or 0)
+        ts       = txn.get("timestamp", "")
+        decision = str(txn.get("analyst_decision", "")).strip()
+        sar      = int(txn.get("sar_filed", 0) or 0)
+        priority = _priority(score)
 
-        if entity not in case_map:
-            case_id = f"CAS-{case_counter}"; case_counter += 1
-            case_map[entity] = case_id
-            new_cases.append({
+        # Determine status from dataset fields
+        if sar == 1:
+            status = "filed"
+        elif decision in ("True Positive", "Escalated"):
+            status = "review"
+        elif decision == "False Positive":
+            status = "cleared"
+        else:
+            status = "open"
+
+        if not alert_id.startswith("ALT-"):
+            continue
+
+        # Each alert_id maps to one record (one transaction per alert)
+        if alert_id not in alerts_by_id:
+            alerts_by_id[alert_id] = {
+                "id":           alert_id,
+                "entity":       entity,
+                "amount":       amount,
+                "score":        score,
+                "priority":     priority,
+                "typology":     typology,
+                "channel":      channel,
+                "timestamp":    ts,
+                "status":       status,
+                "officer":      _rnd.choice(officers),
+                "case_id":      case_id if case_id.startswith("CAS-") else None,
+                "model_scores": {"iso": max(0,score-15), "xgb": min(100,score+5),
+                                 "gnn": max(0,score-8),  "lstm": max(0,score-12)},
+                "shap": [
+                    {"label": "Transaction amount",    "shap": round(float(txn.get("amount_vs_peer_pct",0))/400,3), "value": amount},
+                    {"label": "Behavioural drift",     "shap": round(float(txn.get("behavioral_drift",0))*0.35,3),  "value": txn.get("behavioral_drift",0)},
+                    {"label": "Velocity 3D",           "shap": round(float(txn.get("velocity_3d",0))/800,3),        "value": txn.get("velocity_3d",0)},
+                    {"label": "Jurisdiction risk",     "shap": round(int(txn.get("jurisdiction_idx",0))*0.12,3),    "value": txn.get("jurisdiction",0)},
+                    {"label": "Counterparty degree",   "shap": round(int(txn.get("counterparty_degree",0))*0.03,3), "value": txn.get("counterparty_degree",0)},
+                    {"label": "Beneficiary risk",      "shap": round(float(txn.get("bene_risk_score",0))/300,3),    "value": txn.get("bene_risk_score",0)},
+                ],
+                "transactions": [{"dir": "out", "desc": f"{channel} → {entity}", "amount": -amount}],
+                "notes":        str(txn.get("notes", "") or ""),
+                "source":       "dataset",
+                "txn_id":       txn.get("transaction_id",""),
+                # Extra fields for transaction detail table
+                "sender_bank":    txn.get("sender_bank",""),
+                "sender_country": txn.get("sender_country",""),
+                "bene_name":      txn.get("bene_name",""),
+                "bene_bank":      txn.get("bene_bank",""),
+                "bene_country":   txn.get("bene_country",""),
+                "bene_risk_score":txn.get("bene_risk_score",0),
+                "bene_blacklist": txn.get("bene_blacklist",0),
+                "kyc_level":      txn.get("kyc_level",""),
+                "jurisdiction":   txn.get("jurisdiction",""),
+                "payment_rail":   txn.get("payment_rail",""),
+                "cross_border":   txn.get("cross_border",0),
+                "velocity_3d":    txn.get("velocity_3d",0),
+                "behavioral_drift":txn.get("behavioral_drift",0),
+                "geo_location":   txn.get("geo_location",""),
+            }
+            # Store full txn for detail view
+            INGESTED_TRANSACTIONS.append({**txn, "ml_score": score,
+                "ml_priority": priority, "ml_typology": typology,
+                "ml_shap": alerts_by_id[alert_id]["shap"], "ml_models": alerts_by_id[alert_id]["model_scores"]})
+
+        # Build case
+        if case_id.startswith("CAS-") and case_id not in cases_by_id:
+            cases_by_id[case_id] = {
                 "id":          case_id,
                 "entity":      entity,
-                "alerts":      [alert_id],
-                "alert_count": 1,
+                "alerts":      [],
+                "alert_count": 0,
                 "priority":    priority,
-                "status":      "open",
+                "status":      status if status != "cleared" else "open",
                 "officer":     _rnd.choice(officers),
-                "opened":      txn["timestamp"],
-                "sar_due":     _ts(days_ago=-29 if priority == "critical" else -25),
+                "opened":      ts,
+                "sar_due":     _ts(days_ago=-29 if priority=="critical" else -25),
                 "typology":    typology,
                 "narrative":   _build_case_narrative(entity, typology, score, priority, txn),
-                "sar_status":  "pending" if priority in ("critical","high") else None,
-            })
-        else:
-            case_id = case_map[entity]
-            for c in new_cases:
-                if c["id"] == case_id:
-                    c["alerts"].append(alert_id)
-                    c["alert_count"] += 1
-                    prio_rank = {"critical":3,"high":2,"medium":1,"low":0}
-                    if prio_rank.get(priority,0) > prio_rank.get(c["priority"],0):
-                        c["priority"] = priority
+                "sar_status":  "filed" if sar else ("pending" if priority in ("critical","high") else None),
+            }
+        if case_id.startswith("CAS-") and case_id in cases_by_id:
+            if alert_id not in cases_by_id[case_id]["alerts"]:
+                cases_by_id[case_id]["alerts"].append(alert_id)
+                cases_by_id[case_id]["alert_count"] += 1
+                prank = {"critical":3,"high":2,"medium":1,"low":0}
+                if prank.get(priority,0) > prank.get(cases_by_id[case_id]["priority"],0):
+                    cases_by_id[case_id]["priority"] = priority
 
-        direction = "in" if txn.get("round_dollar") else "out"
-        new_alerts.append({
-            "id":           alert_id,
-            "entity":       entity,
-            "amount":       txn["amount"],
-            "score":        score,
-            "priority":     priority,
-            "typology":     typology,
-            "channel":      txn["channel"],
-            "timestamp":    txn["timestamp"],
-            "status":       "open",
-            "officer":      None,
-            "case_id":      case_map[entity],
-            "model_scores": models,
-            "shap":         shap,
-            "transactions": [{"dir": direction,
-                               "desc": f"{txn['channel']} {'←' if direction=='in' else '→'} {entity}",
-                               "amount": txn["amount"] if direction=="in" else -txn["amount"]}],
-            "notes":        "",
-            "source":       "dataset_ingestion",
-            "txn_id":       txn["transaction_id"],
-        })
-        audit_entries.append({
-            "ts": txn["timestamp"], "user": "system",
-            "action": "ALERT_GENERATED", "target": alert_id,
-            "detail": f"ML score {score} — {typology} — {txn['transaction_id']}",
-        })
+    new_alerts = sorted(alerts_by_id.values(), key=lambda a: a["id"])
+    new_cases  = sorted(cases_by_id.values(),  key=lambda c: c["id"])
+
+    # Audit log entries
+    audit_entries = [
+        {"ts": a["timestamp"], "user": "system", "action": "ALERT_GENERATED",
+         "target": a["id"], "detail": f"ML score {a['score']} — {a['typology']}"}
+        for a in new_alerts
+    ]
 
     ALERTS[:0]    = new_alerts
     CASES[:0]     = new_cases
@@ -679,6 +441,7 @@ def _flush_ingested_to_stores():
     susp = sum(1 for a in new_alerts if a["priority"] in ("critical","high"))
     print(f"[DataStore] Ingestion complete: {len(new_alerts)} alerts, "
           f"{susp} critical/high, {len(new_cases)} cases.", flush=True)
+
 
 # Ingestion is called by api_server.py after ML engine is ready
 DATASET_INGESTION_DONE = False
@@ -778,7 +541,7 @@ def get_system_stats():
     # Baseline: if FP rate was 98%, investigators would clear 98% of alerts
     # Now clearing fp_rate_pct% — saved = (98 - fp_rate_pct) / 98 × 100
     investigator_hours_saved = round(
-        max(0, (rule_based_baseline - fp_rate_pct) / rule_based_baseline * 100), 1
+        max(0, (rule_based_baseline - fp_rate_pct) / max(rule_based_baseline, 0.01) * 100), 1
     )
 
     # ── Live pipeline metrics (small random variation around real baseline) ─
