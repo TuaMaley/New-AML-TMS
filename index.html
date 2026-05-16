@@ -608,9 +608,15 @@ async function dashboard() {
   // Shows a live progress indicator rather than stale seed-data numbers
   let ready = false;
   let attempts = 0;
-  while (!ready && attempts < 90) {
+  let _alertCountFromReady = 0;
+  while (!ready && attempts < 150) {
     const r = await api('/api/ready') || {};
-    if (r.ready) { ready = true; break; }
+    // ready=True only when ALERTS > 0 (backend guarantees this)
+    if (r.ready && (r.total_alerts || r.alerts_loaded || 0) > 0) {
+      ready = true;
+      _alertCountFromReady = r.total_alerts || r.alerts_loaded || 0;
+      break;
+    }
     const pct = Math.min(95, Math.round((r.ingested_transactions||0)/10));
     $('content').innerHTML = `
       <div style="padding:60px 40px;text-align:center">
@@ -623,19 +629,15 @@ async function dashboard() {
     await new Promise(res => setTimeout(res, 1200));
     attempts++;
   }
-  // Fetch stats with retry — keep polling until total_alerts > 6 (seed data threshold)
-  // This is the definitive fix: never accept seed-data counts as Total Alerts
-  var stats = {};
-  var statsRetries = 0;
-  while (statsRetries < 20) {
-    stats = await api('/api/stats') || {};
-    if ((stats.total_alerts_in_store || 0) > 0) break;  // No seed data — any positive count is real
-    // Still getting seed data — wait and retry
-    await new Promise(res => setTimeout(res, 800));
-    statsRetries++;
+  // Fetch stats — by now ingest is guaranteed complete (ready=True required alerts>0)
+  var stats = await api('/api/stats') || {};
+  // Use alert count from ready response as authoritative fallback
+  if (!stats.total_alerts_in_store || stats.total_alerts_in_store === 0) {
+    stats.total_alerts_in_store = _alertCountFromReady || stats.alerts_today || 0;
   }
-  // Fetch typology data for donut — independently, non-blocking on render
+  // Fetch typology data for donut — non-blocking on render
   var typoData = {};
+
 
 
   $('content').innerHTML = `
@@ -766,7 +768,7 @@ async function dashboard() {
   var _todayEl = document.getElementById('dash-today-alerts');
   var _todaySub = document.getElementById('dash-today-sub');
   if (_totalEl && _finalStats.total_alerts_in_store) {
-    _totalEl.textContent = _finalStats.total_alerts_in_store;
+    _totalEl.textContent = _finalStats.total_alerts_in_store || _alertCountFromReady || _totalEl.textContent;
   }
   if (_totalSub && _finalStats.critical_alerts !== undefined) {
     _totalSub.textContent = (_finalStats.critical_alerts||0) + ' critical · ' + (_finalStats.high_alerts||0) + ' high';
